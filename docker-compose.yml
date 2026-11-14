@@ -5,9 +5,18 @@ services:
       - "8000:8000"
     environment:
       - APP_ENV=local
+      # 读取入口切换到注册档案；进程重启后注册时间、服务地址、健康状态延续
+      - REGISTRY_READ_SOURCE=archive
+      - REGISTRY_DB_PATH=/srv/app/data/registry_archive.sqlite3
+    volumes:
+      # 档案库落到容器外，容器重建不丢注册档案
+      - registry-data:/srv/app/data
   frontend:
     build: ./frontend
     ports:
       - "5173:5173"
     depends_on:
       - backend
+
+volumes:
+  registry-data:

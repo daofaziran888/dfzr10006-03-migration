@@ -3,9 +3,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.archive import archive
+from app.archive.db import ArchiveStore
+from app.config import settings
 from app.store import store
 
 MODULE = "router"
+REGISTRY_MODULE = "registry"
 REQUIRED_FIELDS = ["规则编号", "匹配条件", "目标服务"]
 STATUS_ORDER = ["草稿", "生效中", "已降级", "已关闭"]
 ACTION_RULES = {"启用规则": "草稿", "降级路由": "生效中", "关闭规则": "已降级"}
@@ -59,3 +63,10 @@ class RouterService:
         entry["pending"] = target != STATUS_ORDER[-1]
         entry["abnormal"] = action in NEGATIVE_ACTIONS
         return entry, f"路由规则已{action}"
+
+    def referenced_instances(self) -> list[dict[str, Any]]:
+        """路由服务引用的服务实例清单：档案入口下带来源与档案版本，不再是无来源旧清单。"""
+        if settings.registry_read_source == "archive":
+            return [ArchiveStore.to_api_row(item) for item in archive.list_snapshots()]
+        rows = store.rows(REGISTRY_MODULE)
+        return [dict(row, 档案来源="内存清单") for row in rows]

@@ -5,6 +5,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 
+from app.config import settings
 from app.schemas import ActionResult, EntryPayload, PageResult
 from app.services.registry import RegistryService
 
@@ -30,6 +31,23 @@ def list_entries(
     return PageResult(items=items, total=total, page=page, size=size)
 
 
+@router.get("/read-source")
+def read_source() -> dict[str, Any]:
+    """读取入口探针：标识当前服务实例清单来自内存还是注册档案。"""
+    return {
+        "read_source": settings.registry_read_source,
+        "archive": "注册档案(SQLite)" if settings.registry_read_source == "archive" else "内存清单",
+        "db_path": str(settings.registry_db_path),
+    }
+
+
+@router.get("/export")
+def export_entries() -> dict[str, Any]:
+    """导出服务注册发现清单：返回当前过滤条件下的全量数据。"""
+    items, total = service.list_entries(page=1, size=10000)
+    return {"module": "registry", "total": total, "items": items}
+
+
 @router.get("/{entry_id}", response_model=dict)
 def get_entry(entry_id: int) -> dict:
     """读取单条服务实例明细；不存在时给出可读的错误说明。"""
@@ -44,6 +62,12 @@ def create_entry(payload: EntryPayload) -> ActionResult:
     """登记一条服务实例，缺字段时说明原因而不是静默丢弃。"""
     entry, missing = service.create_entry(payload.values)
     if missing:
+        if missing == ["__conflict__"]:
+            return ActionResult(
+                ok=False,
+                message=f"实例编号已存在，先成功提交的档案版本 {entry.get('档案版本')} 裁决生效，本次提交被幂等拦截",
+                entry=entry,
+            )
         return ActionResult(ok=False, message=f"缺少必填字段：{'、'.join(missing)}")
     return ActionResult(ok=True, message="服务实例已登记", entry=entry)
 
@@ -56,10 +80,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
     if entry is None:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
-
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出服务注册发现清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "registry", "total": total, "items": items}

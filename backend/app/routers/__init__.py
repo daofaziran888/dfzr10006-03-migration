@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from app.routers import registry as router_registry
+from app.routers import archive as router_archive
 from app.routers import router as router_router
 from app.routers import cache as router_cache
 from app.routers import limiter as router_limiter
@@ -23,4 +24,4 @@ from app.routers import whitelist as router_whitelist
 from app.routers import balance as router_balance
 from app.routers import rollback as router_rollback
 
-ROUTERS = [router_registry, router_router, router_cache, router_limiter, router_orchestra, router_trace, router_diagnose, router_schema, router_subscribe, router_transform, router_mock, router_gateway, router_metric, router_whitelist, router_balance, router_rollback]
+ROUTERS = [router_registry, router_archive, router_router, router_cache, router_limiter, router_orchestra, router_trace, router_diagnose, router_schema, router_subscribe, router_transform, router_mock, router_gateway, router_metric, router_whitelist, router_balance, router_rollback]
